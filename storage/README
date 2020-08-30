@@ -1,0 +1,4 @@
+The directory is empty at checkout but will be used to store Druid
+indexes when docker containers start. It is useful to have it empty
+instead of creating it afterwards to avoid the need for more scripts
+changing permissions, etc.
