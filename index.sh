@@ -15,15 +15,31 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+if [ $# -gt 1 ]
+  then
+    echo "Wrong number of arguments"
+    echo "Usage: index.sh [INDEX_POLL_DELAY]"
+    echo "INDEX_POLL_DELAY: Optional argument specifying the delay that we poll the logs to check if indexing is finished."
+    exit 1
+fi
+
+# If not arguments are provide the default delay to poll the logs is 1 second
+sleep_delay=1s
+if [ $# -eq 1 ]
+  then
+    sleep_delay=$1
+fi
+
+# Change coordinator rules to not replicate datasets
+curl -H "Content-Type: application/json" -X POST -d '[{"tieredReplicants":{"_default_tier":1},"type":"loadForever"}]' 0.0.0.0:8081/druid/coordinator/v1/rules/_default
 
 # Start task to index the foodmart data set
-curl -X 'POST' -H 'Content-Type:application/json' \
-    -d @schemas/foodmart-index.json \
-    localhost:8081/druid/indexer/v1/task
+echo 'Indexing foodmart dataset...'
+curl -X 'POST' -H 'Content-Type:application/json' -d @schemas/foodmart-index.json 0.0.0.0:8081/druid/indexer/v1/task
+# Wait till the 12 segments of the dataset are completely loaded
+until [ 12 -eq `docker logs historical | grep "LOAD: foodmart_" | wc -l` ] ; do sleep $sleep_delay; done
 
-sleep 5
-
-# Start task to index the wikiticker data set
-curl -X 'POST' -H 'Content-Type:application/json' \
-    -d @schemas/wikipedia-index.json \
-    localhost:8081/druid/indexer/v1/task
+echo 'Indexing wikipedia dataset...'
+curl -X 'POST' -H 'Content-Type:application/json' -d @schemas/wikipedia-index.json 0.0.0.0:8081/druid/indexer/v1/task
+# Wait till the 24 segments of the dataset are completely loaded
+until [ 24 -eq `docker logs historical | grep "LOAD: wikipedia_" | wc -l` ] ; do sleep $sleep_delay; done
