@@ -32,7 +32,7 @@ services:
     container_name: postgres
     image: postgres:latest
     volumes:
-      - metadata_data:/var/lib/postgresql/data
+      - metadata_data:/var/lib/postgresql
     environment:
       - POSTGRES_PASSWORD=FoolishPassword
       - POSTGRES_USER=druid
